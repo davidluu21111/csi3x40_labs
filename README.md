@@ -1,1 +1,1 @@
-# This is a resume in HTML,CSS and javascript
+# This is a resume in HTML,CSS 
