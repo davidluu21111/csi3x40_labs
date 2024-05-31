@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>1D PacMan</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #000;
+            color: #fff;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        .game-container {
+            text-align: center;
+        }
+        .scoreboard {
+            margin-bottom: 20px;
+        }
+        .game-board {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 40px;
+        }
+        .tile {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0 5px;
+        }
+        .pacman {
+            color: yellow;
+        }
+        .ghost {
+            color: red;
+        }
+        .fruit {
+            color: orange;
+        }
+        .pellet {
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="scoreboard">
+            <div>Score: <span id="score">0</span></div>
+            <div>Lives: <span id="lives">3</span></div>
+        </div>
+        <div id="game" class="game-board"></div>
+    </div>
+    <script>
+        let score = 0;
+        let lives = 3;
+        let ghostDirection = 1; // 1 for right, -1 for left
+        let previousGhostTile = 'empty';
+
+        function createGame(n) {
+            const gameBoard = new Array(n).fill('pellet');
+            const pacmanPosition = Math.floor(Math.random() * n);
+            let ghostPosition;
+            do {
+                ghostPosition = Math.floor(Math.random() * n);
+            } while (ghostPosition === pacmanPosition);
+
+            let fruitPosition;
+            do {
+                fruitPosition = Math.floor(Math.random() * n);
+            } while (fruitPosition === pacmanPosition || fruitPosition === ghostPosition);
+
+            gameBoard[pacmanPosition] = 'pacman';
+            gameBoard[ghostPosition] = 'ghost';
+            gameBoard[fruitPosition] = 'fruit';
+
+            return { gameBoard, pacmanPosition, ghostPosition, fruitPosition };
+        }
+
+        function movePacmanLeft(game) {
+            const newPosition = (game.pacmanPosition - 1 + game.gameBoard.length) % game.gameBoard.length;
+            handleCollision(game, newPosition);
+            game.pacmanPosition = newPosition;
+            return game;
+        }
+
+        function movePacmanRight(game) {
+            const newPosition = (game.pacmanPosition + 1) % game.gameBoard.length;
+            handleCollision(game, newPosition);
+            game.pacmanPosition = newPosition;
+            return game;
+        }
+
+        function handleCollision(game, newPosition) {
+            const currentTile = game.gameBoard[newPosition];
+            if (currentTile === 'pellet') {
+                score++;
+            } else if (currentTile === 'fruit') {
+                score += 10;
+            } else if (currentTile === 'ghost') {
+                lives--;
+                if (lives === 0) {
+                    alert('Game Over');
+                    game = resetGame(game.gameBoard.length);
+                    return game;
+                }
+            }
+
+            game.gameBoard[game.pacmanPosition] = 'empty';
+            game.gameBoard[newPosition] = 'pacman';
+
+            updateScoreboard();
+        }
+
+        function checkLevelComplete(game) {
+            return game.gameBoard.every(cell => cell !== 'pellet');
+        }
+
+        function resetGame(n) {
+            score = 0;
+            lives = 3;
+            ghostDirection = 1; // Reset ghost direction
+            previousGhostTile = 'empty';
+            return createGame(n);
+        }
+
+        function moveGhost(game) {
+            let direction;
+            if (game.ghostPosition < game.pacmanPosition) {
+                direction = 1; // Move right
+            } else if (game.ghostPosition > game.pacmanPosition) {
+                direction = -1; // Move left
+            } else {
+                return game; // PacMan and Ghost are on the same position
+            }
+
+            const newIndex = (game.ghostPosition + direction + game.gameBoard.length) % game.gameBoard.length;
+
+            if (newIndex === game.pacmanPosition) {
+                lives--;
+                if (lives === 0) {
+                    alert('Game Over');
+                    game = resetGame(game.gameBoard.length);
+                    return game;
+                }
+            }
+
+            // Restore the previous tile
+            game.gameBoard[game.ghostPosition] = previousGhostTile;
+
+            // Store the current tile before moving the ghost
+            previousGhostTile = game.gameBoard[newIndex];
+            game.ghostPosition = newIndex;
+            game.gameBoard[newIndex] = 'ghost';
+
+            return game;
+        }
+
+        function renderGame(game) {
+            const gameElement = document.getElementById('game');
+            gameElement.innerHTML = '';
+            game.gameBoard.forEach(cell => {
+                const tile = document.createElement('div');
+                tile.classList.add('tile');
+                if (cell === 'pacman') {
+                    tile.textContent = 'C';
+                    tile.classList.add('pacman');
+                } else if (cell === 'ghost') {
+                    tile.textContent = '^';
+                    tile.classList.add('ghost');
+                } else if (cell === 'fruit') {
+                    tile.textContent = '@';
+                    tile.classList.add('fruit');
+                } else if (cell === 'pellet') {
+                    tile.textContent = '.';
+                    tile.classList.add('pellet');
+                }
+                gameElement.appendChild(tile);
+            });
+        }
+
+        function updateScoreboard() {
+            document.getElementById('score').textContent = score;
+            document.getElementById('lives').textContent = lives;
+        }
+
+        let game = createGame(10);
+        renderGame(game);
+        updateScoreboard();
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'ArrowLeft') {
+                game = movePacmanLeft(game);
+            } else if (event.key === 'ArrowRight') {
+                game = movePacmanRight(game);
+            }
+
+            if (checkLevelComplete(game)) {
+                alert('Level Complete! Starting a new level.');
+                game = resetGame(10);
+            }
+
+            renderGame(game);
+        });
+
+        setInterval(() => {
+            game = moveGhost(game);
+            renderGame(game);
+        }, 1000);
+    </script>
+</body>
+</html>
